@@ -1,0 +1,168 @@
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+
+import { InjectRepository } from '@nestjs/typeorm';
+
+import { Repository } from 'typeorm';
+
+import { User } from './entities/user.entity';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
+
+  async create(dto: CreateUserDto) {
+    try {
+      const existingUser = await this.userRepo.findOne({
+        where: [
+          { email: dto.email },
+          { matricule: dto.matricule },
+          {
+            registration_number_professional_order:
+              dto.registration_number_professional_order,
+          },
+          { professional_order: dto.professional_order },
+        ],
+      });
+
+      if (existingUser) {
+        if (existingUser.email === dto.email) {
+          throw new ConflictException('Email déjà utilisé');
+        }
+        if (existingUser.matricule === dto.matricule) {
+          throw new ConflictException('Matricule déjà utilisé');
+        }
+        if (
+          existingUser.registration_number_professional_order ===
+          dto.registration_number_professional_order
+        ) {
+          throw new ConflictException(
+            "Numéro d'inscription à l'ordre déjà utilisé",
+          );
+        }
+        if (existingUser.professional_order === dto.professional_order) {
+          throw new ConflictException('Ordre professionnel déjà utilisé');
+        }
+      }
+
+      const user = this.userRepo.create(dto);
+      return await this.userRepo.save(user);
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la création de l'utilisateur",
+      );
+    }
+  }
+
+  async findAll() {
+    try {
+      return await this.userRepo.find({
+        relations: { serviceRoles: true },
+      });
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des utilisateurs",
+      );
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      const user = await this.userRepo.findOne({
+        where: { id },
+        relations: { serviceRoles: true },
+      });
+
+      if (!user) {
+        throw new NotFoundException('Utilisateur introuvable');
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la recherche de l'utilisateur",
+      );
+    }
+  }
+
+  async findByEmail(email: string) {
+    try {
+      const user = await this.userRepo.findOne({
+        where: { email },
+        relations: { serviceRoles: true },
+      });
+
+      return user;
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la recherche par email",
+      );
+    }
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    try {
+      const user = await this.findOne(id);
+
+      if (dto.email) {
+        const existing = await this.userRepo.findOne({
+          where: { email: dto.email },
+        });
+        if (existing && existing.id !== id) {
+          throw new ConflictException('Email déjà utilisé');
+        }
+      }
+
+      Object.assign(user, dto);
+      await this.userRepo.save(user);
+
+      return {
+        message: 'Utilisateur mis à jour avec succès',
+        user,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      )
+        throw error;
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour de l'utilisateur",
+      );
+    }
+  }
+
+  async remove(id: string) {
+    try {
+      const user = await this.findOne(id);
+      await this.userRepo.remove(user);
+
+      return {
+        message: 'Utilisateur supprimé avec succès',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la suppression de l'utilisateur",
+      );
+    }
+  }
+}
