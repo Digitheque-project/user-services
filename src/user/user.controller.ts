@@ -12,7 +12,6 @@ import { UserService } from './user.service';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Users')
@@ -21,9 +20,8 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Public()
   @ApiOperation({
-    summary: 'Créer un utilisateur (utilisé par auth-service)',
+    summary: 'Créer un utilisateur',
   })
   @ApiBody({ type: CreateUserDto })
   create(@Body() dto: CreateUserDto) {
@@ -39,9 +37,8 @@ export class UserController {
   }
 
   @Get('by-email/:email')
-  @Public()
   @ApiOperation({
-    summary: 'Trouver un utilisateur par email (utilisé par auth-service)',
+    summary: 'Trouver un utilisateur par email',
   })
   findByEmail(@Param('email') email: string) {
     return this.userService.findByEmail(email);
