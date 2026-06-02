@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -42,8 +43,12 @@ export class UserServiceRoleController {
   @ApiOperation({
     summary: 'Lister les associations',
   })
-  findAll() {
-    return this.usrService.findAll();
+  findAll(
+    @Query('search') search?: string,
+    @Query('roleId') roleId?: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
+    return this.usrService.findAll({ search, roleId, serviceId });
   }
 
   @Get(':id')

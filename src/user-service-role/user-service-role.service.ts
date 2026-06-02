@@ -40,12 +40,13 @@ export class UserServiceRoleService {
         where: {
           user: { id: dto.userId },
           serviceId: dto.serviceId,
+          roleId: dto.roleId,
         },
       });
 
       if (existing) {
         throw new ConflictException(
-          'Cet utilisateur est déjà associé à ce service',
+          'Cet utilisateur a déjà ce rôle sur ce service',
         );
       }
 
@@ -74,11 +75,32 @@ export class UserServiceRoleService {
     }
   }
 
-  async findAll() {
+  async findAll(filters?: {
+    search?: string;
+    roleId?: string;
+    serviceId?: string;
+  }) {
     try {
-      return await this.usrRepo.find({
-        relations: { user: true },
-      });
+      const qb = this.usrRepo.createQueryBuilder('usr')
+        .leftJoinAndSelect('usr.user', 'user');
+
+      if (filters?.search) {
+        const s = `%${filters.search}%`;
+        qb.andWhere(
+          '(user.name ILIKE :s OR user.firstname ILIKE :s OR user.email ILIKE :s)',
+          { s },
+        );
+      }
+
+      if (filters?.roleId) {
+        qb.andWhere('usr.roleId = :roleId', { roleId: filters.roleId });
+      }
+
+      if (filters?.serviceId) {
+        qb.andWhere('usr.serviceId = :serviceId', { serviceId: filters.serviceId });
+      }
+
+      return await qb.getMany();
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(

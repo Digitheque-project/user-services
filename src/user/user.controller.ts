@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 
 import {
   ApiBearerAuth,
@@ -32,8 +32,23 @@ export class UserController {
   @ApiOperation({
     summary: 'Lister les utilisateurs',
   })
-  findAll() {
-    return this.userService.findAll();
+  async findAll(
+    @Query('search') search?: string,
+    @Query('roleId') roleId?: string,
+    @Query('serviceId') serviceId?: string,
+    @Query('isActive') isActive?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const users = await this.userService.findAll({
+      search,
+      roleId,
+      serviceId,
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return { users, total: users.length };
   }
 
   @Get('by-email/:email')

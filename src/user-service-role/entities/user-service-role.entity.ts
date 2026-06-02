@@ -3,7 +3,7 @@ import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, Unique } from 'typeo
 import { User } from '../../user/entities/user.entity';
 
 @Entity('user_service_roles')
-@Unique(['user', 'serviceId'])
+@Unique(['user', 'serviceId', 'roleId'])
 export class UserServiceRole {
   @PrimaryGeneratedColumn('uuid')
   id: string;

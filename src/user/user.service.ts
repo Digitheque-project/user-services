@@ -66,11 +66,40 @@ export class UserService {
     }
   }
 
-  async findAll() {
+  async findAll(filters?: {
+    search?: string;
+    roleId?: string;
+    serviceId?: string;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
     try {
-      return await this.userRepo.find({
-        relations: { serviceRoles: true },
-      });
+      const qb = this.userRepo.createQueryBuilder('user')
+        .leftJoinAndSelect('user.serviceRoles', 'serviceRoles');
+
+      if (filters?.search) {
+        const s = `%${filters.search}%`;
+        qb.andWhere(
+          '(user.name ILIKE :s OR user.firstname ILIKE :s OR user.email ILIKE :s OR user.job ILIKE :s OR user.phone ILIKE :s OR user.matricule ILIKE :s)',
+          { s },
+        );
+      }
+
+      if (filters?.roleId) {
+        qb.andWhere('serviceRoles.roleId = :roleId', { roleId: filters.roleId });
+      }
+
+      if (filters?.serviceId) {
+        qb.andWhere('serviceRoles.serviceId = :serviceId', { serviceId: filters.serviceId });
+      }
+
+      if (filters?.isActive !== undefined) {
+        qb.andWhere('user.isActive = :isActive', { isActive: filters.isActive });
+      }
+
+      const users = await qb.getMany();
+      return users.map(({ password, ...user }) => user);
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(
