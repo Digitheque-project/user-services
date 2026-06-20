@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('users-docs');
+  //app.setGlobalPrefix('users-docs');
 
   app.useGlobalPipes(
     new ValidationPipe({
