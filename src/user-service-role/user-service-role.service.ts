@@ -6,11 +6,9 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 import { UserServiceRole } from './entities/user-service-role.entity';
-
 import { User } from '../user/entities/user.entity';
 
 import { CreateUserServiceRoleDto } from './dto/create-user-service-role.dto';
@@ -24,6 +22,8 @@ export class UserServiceRoleService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(dto: CreateUserServiceRoleDto) {
@@ -36,31 +36,42 @@ export class UserServiceRoleService {
         throw new NotFoundException('Utilisateur introuvable');
       }
 
-      const existing = await this.usrRepo.findOne({
-        where: {
-          user: { id: dto.userId },
-          serviceId: dto.serviceId,
-          roleId: dto.roleId,
-        },
+      const results = await this.dataSource.transaction(async (manager) => {
+        const created: UserServiceRole[] = [];
+        const skipped: string[] = [];
+
+        for (const roleId of dto.roleIds) {
+          const existing = await manager.findOne(UserServiceRole, {
+            where: {
+              user: { id: dto.userId },
+              serviceId: dto.serviceId,
+              roleId,
+            },
+          });
+
+          if (existing) {
+            skipped.push(roleId);
+            continue;
+          }
+
+          const usr = manager.create(UserServiceRole, {
+            user,
+            serviceId: dto.serviceId,
+            roleId,
+          });
+          await manager.save(usr);
+          created.push(usr);
+        }
+
+        return { created, skipped };
       });
-
-      if (existing) {
-        throw new ConflictException(
-          'Cet utilisateur a déjà ce rôle sur ce service',
-        );
-      }
-
-      const usr = this.usrRepo.create({
-        user,
-        serviceId: dto.serviceId,
-        roleId: dto.roleId,
-      });
-
-      await this.usrRepo.save(usr);
 
       return {
-        message: 'Association utilisateur-service-rôle créée',
-        data: usr,
+        message: results.created.length > 0
+          ? `${results.created.length} rôle(s) assigné(s)${results.skipped.length > 0 ? `, ${results.skipped.length} déjà existant(s) ignoré(s)` : ''}`
+          : 'Aucun nouveau rôle assigné (tous déjà présents)',
+        data: results.created,
+        skipped: results.skipped,
       };
     } catch (error) {
       if (
@@ -148,10 +159,6 @@ export class UserServiceRoleService {
 
       if (dto.serviceId) {
         usr.serviceId = dto.serviceId;
-      }
-
-      if (dto.roleId) {
-        usr.roleId = dto.roleId;
       }
 
       await this.usrRepo.save(usr);

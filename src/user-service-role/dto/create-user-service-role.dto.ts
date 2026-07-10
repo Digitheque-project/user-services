@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsArray, ArrayMinSize } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -20,10 +20,12 @@ export class CreateUserServiceRoleDto {
   serviceId: string;
 
   @ApiProperty({
-    example: 'uuid-role',
-    description: 'ID du rôle',
+    example: ['uuid-role-1', 'uuid-role-2'],
+    description: 'Liste des IDs des rôles à assigner',
+    type: [String],
   })
-  @IsUUID()
-  @IsNotEmpty()
-  roleId: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  roleIds: string[];
 }
