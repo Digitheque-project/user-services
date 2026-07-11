@@ -59,6 +59,14 @@ export class UserController {
     return this.userService.findByEmail(email);
   }
 
+  @Get('chu/:chuId')
+  @ApiOperation({
+    summary: 'Lister les utilisateurs d\'un CHU',
+  })
+  findByChu(@Param('chuId') chuId: string) {
+    return this.userService.findByChu(chuId);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Afficher un utilisateur',

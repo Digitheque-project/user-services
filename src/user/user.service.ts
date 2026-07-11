@@ -7,7 +7,8 @@ import {
 
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { Repository, In } from 'typeorm';
 
 import { User } from './entities/user.entity';
 
@@ -19,6 +20,7 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(dto: CreateUserDto) {
@@ -141,6 +143,43 @@ export class UserService {
       console.error(error);
       throw new InternalServerErrorException(
         "Erreur lors de la recherche par email",
+      );
+    }
+  }
+
+  async findByChu(chuId: string) {
+    try {
+      const serviceUrl = this.configService.get<string>('SERVICE_SERVICE_URL');
+      const apiKey = this.configService.get<string>('INTERNAL_API_KEY');
+
+      const res = await fetch(`${serviceUrl}/services?chuId=${chuId}`, {
+        headers: { 'x-api-key': apiKey || '' },
+      });
+
+      if (!res.ok) {
+        throw new InternalServerErrorException(
+          "Erreur lors de la récupération des services du CHU",
+        );
+      }
+
+      const servicesData = await res.json();
+      const services = Array.isArray(servicesData) ? servicesData : servicesData.services || [];
+      const serviceIds = services.map((s: any) => s.id).filter(Boolean);
+
+      if (serviceIds.length === 0) {
+        return [];
+      }
+
+      const qb = this.userRepo.createQueryBuilder('user')
+        .leftJoinAndSelect('user.serviceRoles', 'serviceRoles')
+        .where('serviceRoles.serviceId IN (:...serviceIds)', { serviceIds });
+
+      const users = await qb.getMany();
+      return users.map(({ password, ...user }) => user);
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des utilisateurs par CHU",
       );
     }
   }
