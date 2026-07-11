@@ -12,6 +12,7 @@ import { UserService } from './user.service';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Users')
@@ -88,6 +89,21 @@ export class UserController {
   })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
+  }
+
+  @Patch(':id/password')
+  @ApiOperation({
+    summary: 'Modifier le mot de passe d\'un utilisateur',
+  })
+  @ApiBody({
+    type: ChangePasswordDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mot de passe mis à jour',
+  })
+  changePassword(@Param('id') id: string, @Body() dto: ChangePasswordDto) {
+    return this.userService.changePassword(id, dto);
   }
 
   @Delete(':id')

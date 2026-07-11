@@ -9,11 +9,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { ConfigService } from '@nestjs/config';
 import { Repository, In } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 import { User } from './entities/user.entity';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UserService {
@@ -213,6 +215,22 @@ export class UserService {
       console.error(error);
       throw new InternalServerErrorException(
         "Erreur lors de la mise à jour de l'utilisateur",
+      );
+    }
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    try {
+      const user = await this.findOne(id);
+      const salt = await bcrypt.genSalt();
+      user.password = await bcrypt.hash(dto.password, salt);
+      await this.userRepo.save(user);
+      return { message: 'Mot de passe mis à jour avec succès' };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour du mot de passe",
       );
     }
   }
