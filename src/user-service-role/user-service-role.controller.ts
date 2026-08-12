@@ -9,13 +9,20 @@ import {
   Query,
 } from '@nestjs/common';
 
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { UserServiceRoleService } from './user-service-role.service';
 
 import { CreateUserServiceRoleDto } from './dto/create-user-service-role.dto';
 import { UpdateUserServiceRoleDto } from './dto/update-user-service-role.dto';
 
+@ApiBearerAuth('access-token')
 @ApiTags('User Service Roles')
 @Controller('user-service-roles')
 export class UserServiceRoleController {
