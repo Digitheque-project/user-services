@@ -29,7 +29,9 @@ export class User {
   @Column({ nullable: false, unique: true })
   registration_number_professional_order: string;
 
-  @Column({ nullable: false, unique: true })
+  // Ordre professionnel (ONM, ONIM...) : une catégorie partagée par de
+  // nombreux soignants, donc PAS unique (seul le numéro d'inscription l'est).
+  @Column({ nullable: false })
   professional_order: string;
 
   @Column({ unique: true })

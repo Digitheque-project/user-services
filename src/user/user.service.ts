@@ -35,7 +35,6 @@ export class UserService {
             registration_number_professional_order:
               dto.registration_number_professional_order,
           },
-          { professional_order: dto.professional_order },
         ],
       });
 
@@ -53,9 +52,6 @@ export class UserService {
           throw new ConflictException(
             "Numéro d'inscription à l'ordre déjà utilisé",
           );
-        }
-        if (existingUser.professional_order === dto.professional_order) {
-          throw new ConflictException('Ordre professionnel déjà utilisé');
         }
       }
 
