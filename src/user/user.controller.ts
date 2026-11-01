@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 
 import {
   ApiBearerAuth,
@@ -13,6 +13,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { estAdministrateur, type JetonAgent } from './jeton-agent';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Users')
@@ -102,7 +103,12 @@ export class UserController {
     status: 200,
     description: 'Mot de passe mis à jour',
   })
-  changePassword(@Param('id') id: string, @Body() dto: ChangePasswordDto) {
+  changePassword(@Param('id') id: string, @Body() dto: ChangePasswordDto, @Req() req: { user?: JetonAgent }) {
+    // Réinitialisation sans l'ancien mot de passe : administrateurs (ou clé
+    // interne) uniquement. Un agent change le sien par PATCH /users/moi/mot-de-passe.
+    if (req.user && !estAdministrateur(req.user)) {
+      throw new ForbiddenException('Réservé aux administrateurs : utilisez « Modifier mon mot de passe »');
+    }
     return this.userService.changePassword(id, dto);
   }
 

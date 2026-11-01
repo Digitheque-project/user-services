@@ -46,6 +46,17 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  /** Photo de profil (petite image JPEG/PNG/WebP), jamais chargée dans les listes. */
+  @Column({ type: 'bytea', nullable: true, select: false })
+  photo: Buffer | null;
+
+  @Column({ type: 'varchar', length: 40, nullable: true, select: false })
+  photoType: string | null;
+
+  /** Date de la photo actuelle (null = pas de photo) : sert aussi à rafraîchir le cache. */
+  @Column({ type: 'timestamptz', nullable: true })
+  photoMaj: Date | null;
+
   @OneToMany(() => UserServiceRole, (usr) => usr.user)
   serviceRoles: UserServiceRole[];
 
