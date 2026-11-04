@@ -27,16 +27,19 @@ export class UserService {
 
   async create(dto: CreateUserDto) {
     try {
-      const existingUser = await this.userRepo.findOne({
-        where: [
-          { email: dto.email },
-          { matricule: dto.matricule },
-          {
-            registration_number_professional_order:
-              dto.registration_number_professional_order,
-          },
-        ],
-      });
+      // Seuls les champs renseignés : un critère { matricule: undefined } est
+      // ignoré par TypeORM et correspondait à n'importe quel utilisateur, si
+      // bien qu'un vrai doublon (n° d'ordre) passait le contrôle et finissait
+      // en erreur 500 à l'enregistrement.
+      const criteres = [
+        { email: dto.email },
+        dto.matricule ? { matricule: dto.matricule } : null,
+        {
+          registration_number_professional_order:
+            dto.registration_number_professional_order,
+        },
+      ].filter((c): c is NonNullable<typeof c> => c !== null);
+      const existingUser = await this.userRepo.findOne({ where: criteres });
 
       if (existingUser) {
         if (existingUser.email === dto.email) {
@@ -55,7 +58,13 @@ export class UserService {
         }
       }
 
-      const user = this.userRepo.create(dto);
+      // auth-service (/auth/register) envoie déjà un hash bcrypt ; un appel
+      // direct à POST /users envoyait le mot de passe en clair, enregistré tel
+      // quel : le compte ne pouvait jamais se connecter (bcrypt.compare).
+      const password = /^\$2[aby]\$\d{2}\$/.test(dto.password)
+        ? dto.password
+        : await bcrypt.hash(dto.password, 10);
+      const user = this.userRepo.create({ ...dto, password });
       return await this.userRepo.save(user);
     } catch (error) {
       if (error instanceof ConflictException) throw error;
